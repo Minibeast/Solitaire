@@ -25,8 +25,34 @@ def main(stdscr):
                 c = stdscr.getch()
                 if c == ord('d'):
                     game.drawNewWaste()
+                elif c == ord('r'):
+                    game.resetWaste()
                 elif c == ord('q'):
                     return
+                elif c == 27: # Escape
+                    pass
+                elif c == 259: # Up Arrow
+                    game.cursorMoveUp()
+                elif c == 258: # Down Arrow
+                    game.cursorMoveDown()
+                elif c == 260: # Left Arrow
+                    game.cursorMoveLeft()
+                elif c == 261: # Right Arrow
+                    game.cursorMoveRight()
+                elif c == ord('1'):
+                    game.cursorpos = 9 # Foundation 1
+                elif c == ord('2'):
+                    game.cursorpos = 10 # Foundation 2
+                elif c == ord('3'):
+                    game.cursorpos = 11 # Foundation 3
+                elif c == ord('4'):
+                    game.cursorpos = 12 # Foundation 4
+                elif c == ord('5'):
+                    game.cursorpos = 8 # Waste
+                elif c == ord('c'):
+                    game.grabSelectedCard()
+                elif c == ord('v'):
+                    game.placeGrabbedCard()
         elif mainChoice == ord('3'):
             break
 
