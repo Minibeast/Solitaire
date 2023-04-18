@@ -30,7 +30,7 @@ def main(stdscr):
                 elif c == ord('q'):
                     return
                 elif c == 27: # Escape
-                    pass
+                    game.putBackCard()
                 elif c == 259: # Up Arrow
                     game.cursorMoveUp()
                 elif c == 258: # Down Arrow
@@ -53,6 +53,8 @@ def main(stdscr):
                     game.grabSelectedCard()
                 elif c == ord('v'):
                     game.placeGrabbedCard()
+                elif c == ord('f'):
+                    game.autoMoveToFoundation()
         elif mainChoice == ord('3'):
             break
 

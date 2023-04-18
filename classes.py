@@ -15,7 +15,7 @@ DECK_EMPTY = """
 """
 
 FOUNDATION_EMPTY = """|¯¯¯¯¯|
-|     |
+| /// |
 |_____|"""
 
 class Suit(Enum):
@@ -80,7 +80,7 @@ class Card:
         self.hidden = hidden
         self.wasteHidden = False
 
-    def drawCard(self, isFront: bool = False):
+    def drawCard(self, isFront: bool = False, grabbed: bool = False):
         if self.value == Value.Ten:
             if self.wasteHidden:
                 middleLine = f"|{getSymbolFromValue(self.value)}{getSymbolFromSuit(self.suit)}"
@@ -91,8 +91,13 @@ class Card:
                 middleLine = f"| {getSymbolFromValue(self.value)}{getSymbolFromSuit(self.suit)}"
             else:
                 middleLine = f"| {getSymbolFromValue(self.value)} {getSymbolFromSuit(self.suit)} |"
-
-        if self.hidden:
+        if grabbed:
+            return middleLine
+        elif self.hidden and isFront:
+            return """|¯¯¯¯¯|
+|     |
+|_____|"""
+        elif self.hidden:
             return "|¯¯¯¯¯|"
         elif self.wasteHidden:
             return f"""|¯¯¯
@@ -103,7 +108,8 @@ class Card:
 {middleLine}
 |_____|"""
         else:
-            return middleLine
+            return f"""|¯¯¯¯¯|
+{middleLine}"""
 
 def createDeck():
     output = []
@@ -113,18 +119,21 @@ def createDeck():
     return output
 
 class Foundation:
-    def __init__(self, suit):
+    def __init__(self):
         self.cards = []
-        self.suit = suit
+        self.suit = None
 
     def addCard(self, card: Card):
-        if card.suit == self.suit:
-            if len(self.cards) == 0:
-                if card.value == Value.Ace:
-                    self.cards.append(card)
-            else:
-                if card.value == self.cards[-1].value + 1:
-                    self.cards.append(card)
+        if len(self.cards) == 0:
+            if card.value == Value.Ace:
+                self.cards.append(card)
+                self.suit = card.suit
+                return True
+        elif self.suit == card.suit:
+            if card.value == self.cards[-1].value + 1:
+                self.cards.append(card)
+                return True
+        return False
 
     def pullHighestCard(self):
         if len(self.cards) > 0:
@@ -164,6 +173,9 @@ class Deck:
     def removeCardFromWaste(self, card: Card):
         self.removed_cards.remove(card)
 
+    def addCardBackToWaste(self, card: Card):
+        self.removed_cards.append(card) # ! This feels unsafe; order must be maintained always. Just worried some process might mess it up.
+
     def clearWaste(self):
         self.removed_cards.reverse()
         for card in self.removed_cards:
@@ -189,6 +201,7 @@ class Game:
         self.initTableau()
         self.initFoundation()
         self.grabbedCard = None
+        self.grabbedCardPos = None
 
     def initTableau(self):
         for i in range(7):
@@ -196,7 +209,7 @@ class Game:
 
     def initFoundation(self):
         for i in range(4):
-            self.foundation.append(Foundation(Suit(i + 1)))
+            self.foundation.append(Foundation())
 
     def cursorMoveLeft(self):
         if self.cursorpos in range(1, 8):
@@ -248,50 +261,67 @@ class Game:
         if self.cursorpos <= 7:
             if len(self.tableau[self.cursorpos - 1]) > 0:
                 self.grabbedCard = self.tableau[self.cursorpos - 1][-1]
+                self.grabbedCardPos = self.cursorpos
                 self.tableau[self.cursorpos - 1].pop()
         elif self.cursorpos == 8:
             if len(self.waste) > 0:
                 self.grabbedCard = self.waste[-1]
+                self.grabbedCardPos = self.cursorpos
                 self.waste.pop()
-                self.waste[-1].wasteHidden = False
+                if len(self.waste) > 0:
+                    self.waste[-1].wasteHidden = False
+                self.deck.removeCardFromWaste(self.grabbedCard)
         else:
             if len(self.foundation[self.cursorpos - 9].cards) > 0:
                 self.grabbedCard = self.foundation[self.cursorpos - 9].pullHighestCard()
+                self.grabbedCardPos = self.cursorpos
+
+    def putBackCard(self):
+        if self.grabbedCard is None or self.grabbedCardPos is None:
+            return
+        self.cursorpos = self.grabbedCardPos
+        self.placeGrabbedCard()
+        self.moves -= 1
 
     def placeGrabbedCard(self):
-        if self.cursorpos <= 7:
-            if len(self.tableau[self.cursorpos - 1]) == 0:
-                if self.grabbedCard.value == Value.King:
-                    self.tableau[self.cursorpos - 1].append(self.grabbedCard)
-                    self.grabbedCard = None
-                    self.moves += 1
+        if self.grabbedCard is None:
+            return
+        elif self.cursorpos <= 7:
+            if len(self.tableau[self.cursorpos - 1]) == 0 and self.grabbedCard.value == Value.King:
+                self.tableau[self.cursorpos - 1].append(self.grabbedCard)
+                self.grabbedCard = None
+                self.grabbedCardPos = None
+                self.moves += 1
             else:
-                if getColorFromSymbol(self.tableau[self.cursorpos - 1][-1].suit) != getColorFromSymbol(self.grabbedCard.suit) and self.tableau[self.cursorpos - 1][-1].value.value == self.grabbedCard.value.value + 1:
+                if (self.grabbedCardPos == self.cursorpos) or (len(self.tableau[self.cursorpos - 1]) > 0 and getColorFromSymbol(self.tableau[self.cursorpos - 1][-1].suit) != getColorFromSymbol(self.grabbedCard.suit) and self.tableau[self.cursorpos - 1][-1].value.value == self.grabbedCard.value.value + 1):
                     self.tableau[self.cursorpos - 1].append(self.grabbedCard)
                     self.grabbedCard = None
+                    self.grabbedCardPos = None
                     self.moves += 1
-        # elif self.cursorpos == 8:
-        #     if len(self.waste) == 0:
-        #         if self.grabbedCard.value == Value.King:
-        #             self.waste.append(self.grabbedCard)
-        #             self.grabbedCard = None
-        #             self.moves += 1
-        #     else:
-        #         if self.waste[-1].suit.color != self.grabbedCard.suit.color and self.waste[-1].value == self.grabbedCard.value + 1:
-        #             self.waste.append(self.grabbedCard)
-        #             self.grabbedCard = None
-        #             self.moves += 1
+        elif self.cursorpos == 8 and self.grabbedCardPos != None and self.grabbedCardPos == 8:
+            self.waste.append(self.grabbedCard)
+            self.deck.addCardBackToWaste(self.grabbedCard)
+            self.grabbedCard = None
+            self.grabbedCardPos = None
+            self.moves += 1
         elif self.cursorpos in range(9, 13):
-            if len(self.foundation[self.cursorpos - 9].cards) == 0:
-                if self.grabbedCard.value == Value.Ace:
-                    self.foundation[self.cursorpos - 9].addCard(self.grabbedCard)
-                    self.grabbedCard = None
-                    self.moves += 1
-            else:
-                if self.foundation[self.cursorpos - 9].cards[-1].suit == self.grabbedCard.suit and self.foundation[self.cursorpos - 9].cards[-1].value.value == self.grabbedCard.value.value - 1:
-                    self.foundation[self.cursorpos - 9].addCard(self.grabbedCard)
-                    self.grabbedCard = None
-                    self.moves += 1
+            res = self.foundation[self.cursorpos - 9].addCard(self.grabbedCard)
+            if res:
+                self.grabbedCard = None
+                self.grabbedCardPos = None
+                self.moves += 1
+
+    def autoMoveToFoundation(self):
+        if self.grabbedCard == None:
+            self.grabSelectedCard()
+
+        for i in range(4):
+            if self.foundation[i].addCard(self.grabbedCard):
+                self.grabbedCard = None
+                self.grabbedCardPos = None
+                self.moves += 1
+                return
+        self.putBackCard()
 
     def drawNewWaste(self):
         cards = self.deck.draw((3 if self.turnthree else 1))
@@ -347,7 +377,8 @@ class Game:
         for i in range(7):
             stringOutput = ""
             if len(self.tableau[i]) != 0:
-                self.tableau[i][-1].hidden = False # Make the top card of each tableau visible. Move to another function to keep drawing and gameplay mechanics separate?
+                if self.grabbedCard is None:
+                    self.tableau[i][-1].hidden = False # Make the top card of each tableau visible. Move to another function to keep drawing and gameplay mechanics separate?
                 for card in self.tableau[i][:-1]:
                     stringOutput += card.drawCard() + "\n"
                 stringOutput += self.tableau[i][-1].drawCard(True)
@@ -369,4 +400,4 @@ class Game:
 
     def drawGame(self):
         return f"""Moves: {self.moves}\n{"Draw 3" if self.turnthree else "Draw 1"}
-{self.drawTop()}\n{self.drawTableau()}Grabbed Card: {self.grabbedCard.drawCard() if self.grabbedCard != None else "None"}"""
+{self.drawTop()}\n{self.drawTableau()}Grabbed Card: {self.grabbedCard.drawCard(grabbed=True) if self.grabbedCard != None else "None"}"""
