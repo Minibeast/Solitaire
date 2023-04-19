@@ -55,6 +55,8 @@ def main(stdscr):
                     game.placeGrabbedCard()
                 elif c == ord('f'):
                     game.autoMoveToFoundation()
+                elif c == ord('t'):
+                    game.printTimeOnNextDraw()
         elif mainChoice == ord('3'):
             break
 
