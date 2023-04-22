@@ -217,11 +217,20 @@ class Game:
         self.verticalmovementpos = 0
         self.turnthree = turn
         self.startTime = datetime.datetime.now()
+        self.endTime = None
         self.printTime = False
         self.initTableau()
         self.initFoundation()
         self.grabbedCards = []
         self.grabbedCardPos = None
+        self.winState = False
+        self.newGameState = False
+
+    def newGame(self):
+        if self.newGameState:
+            self.newGameState = False
+        else:
+            self.newGameState = True
 
     def initTableau(self):
         for i in range(7):
@@ -260,8 +269,8 @@ class Game:
             else:
                 self.cursorpos += 1
 
-    def cursorMoveUp(self):
-        if self.cursorMoveUpTableau():
+    def cursorMoveUp(self, tableau: bool = True):
+        if tableau and self.cursorMoveUpTableau():
             return
         self.verticalmovementpos = 0
         if self.cursorpos <= 5:
@@ -271,10 +280,10 @@ class Game:
         elif self.cursorpos in [5, 6]:
             self.cursorpos = 9
         else:
-            self.cursorMoveDown()
+            self.cursorMoveDown(False)
 
-    def cursorMoveDown(self):
-        if self.cursorMoveDownTableau():
+    def cursorMoveDown(self, tableau: bool = True):
+        if tableau and self.cursorMoveDownTableau():
             return
         self.verticalmovementpos = 0
         if self.cursorpos == 8:
@@ -284,19 +293,16 @@ class Game:
         elif self.cursorpos == 9:
             self.cursorpos = 6
         else:
-            self.cursorMoveUp()
+            self.cursorMoveUp(False)
 
     def cursorMoveUpTableau(self):
         if self.cursorpos in range(1, 8) and self.verticalmovementpos + 1 < len(self.tableau[self.cursorpos - 1]):
-            self.debugText = "Worked here."
             self.verticalmovementpos += 1
             if self.tableau[self.cursorpos - 1][(self.verticalmovementpos * -1) - 1].hidden:
-                self.debugText = "huh?"
                 return False
             self.debugText = self.tableau[self.cursorpos - 1][(self.verticalmovementpos * -1) - 1].value.name
             return True
         else:
-            self.debugText = "Didn't work here."
             return False
 
     def cursorMoveDownTableau(self):
@@ -305,6 +311,13 @@ class Game:
             return True
         else:
             return False
+
+    def checkWin(self):
+        for foundation in self.foundation:
+            if len(foundation.cards) != 13:
+                return
+        self.winState = True
+        self.endTime = datetime.datetime.now()
 
     def grabSelectedCard(self):
         if len(self.grabbedCards) > 0:
@@ -468,10 +481,14 @@ class Game:
         return output
 
     def drawGame(self):
+        gameString = f"""Moves: {self.moves}\n{"Draw 3" if self.turnthree else "Draw 1"}
+{self.drawTop()}\n{self.drawTableau()}Grabbed Card(s):\n{drawGrabbedCards(self.grabbedCards)}\n"""
         if self.printTime:
             self.printTime = False
-            return f"""Moves: {self.moves}\n{"Draw 3" if self.turnthree else "Draw 1"}
-{self.drawTop()}\n{self.drawTableau()}Grabbed Card(s):\n{drawGrabbedCards(self.grabbedCards)}\nTime (mm:ss): {strfdelta(datetime.datetime.now() - self.startTime, "{minutes}:{seconds}")}"""
+            return gameString + f"""Time (mm:ss): {strfdelta(datetime.datetime.now() - self.startTime, "{minutes}:{seconds}")}"""
+        elif self.winState and self.endTime:
+            return gameString + f"""You Win! Time (mm:ss): {strfdelta(self.endTime - self.startTime, "{minutes}:{seconds}")}"""
+        elif self.newGameState:
+            return gameString + """New Game? Y/N"""
         else:
-            return f"""Moves: {self.moves}\n{"Draw 3" if self.turnthree else "Draw 1"}
-{self.drawTop()}\n{self.drawTableau()}Grabbed Card(s):\n{drawGrabbedCards(self.grabbedCards)}\nD to draw, R to reset waste, C to grab, V to place, F to auto-move to foundation, T to print time, Q to quit."""
+            return gameString + """D to draw, R to reset waste, C to grab, V to place, F to auto-move to foundation, T to print time, Q to quit, N for new game."""

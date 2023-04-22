@@ -1,4 +1,3 @@
-import argparse
 from curses import wrapper
 from classes import Game
 
@@ -9,6 +8,8 @@ The following options are available:
     1) Start a new game, using turn 1.
     2) Start a new game, using turn 3.
     3) Quit the game.
+
+To avoid inconsistency with the module curses, please play the game with the terminal in fullscreen mode.
 """
 
 # ? Main game loop. Handles all actions involving curses. Ideally, this should be the only thing that uses curses. Do not pass stdscr to any other functions.
@@ -57,6 +58,11 @@ def main(stdscr):
                     game.autoMoveToFoundation()
                 elif c == ord('t'):
                     game.printTimeOnNextDraw()
+                elif c == ord('n'):
+                    game.newGame()
+                elif c == ord ('y'):
+                    if game.newGameState:
+                        game = Game(mainChoice == ord('2'))
         elif mainChoice == ord('3'):
             break
 
