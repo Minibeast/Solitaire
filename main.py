@@ -1,4 +1,4 @@
-from curses import wrapper
+import curses
 from classes import Game
 
 INTRO = """Welcome to Solitaire!
@@ -10,19 +10,34 @@ The following options are available:
     3) Quit the game.
 
 To avoid inconsistency with the module curses, please play the game with the terminal in fullscreen mode.
-"""
+Requires 256-color (xterm-256) support. Support is indicated if the heart is visible and is pink: """
 
 # ? Main game loop. Handles all actions involving curses. Ideally, this should be the only thing that uses curses. Do not pass stdscr to any other functions.
 def main(stdscr):
     stdscr.clear()
     stdscr.addstr(INTRO)
+    stdscr.addstr("♥\n", curses.color_pair(202))
+    curses.start_color()
+    curses.use_default_colors()
+    for i in range(0, curses.COLORS - 1):
+        curses.init_pair(i + 1, i, -1)
+
     while True:
         mainChoice = stdscr.getch()
         if mainChoice == ord('1') or mainChoice == ord('2'): # The actual game loop begins here.
             game = Game(mainChoice == ord('2'))
             while True:
                 stdscr.clear()
-                stdscr.addstr(game.drawGame())
+                gameString = game.drawGame()
+                for char in gameString:
+                    if char == "♥":
+                        stdscr.addstr("♥", curses.color_pair(197))
+                    elif char == "♦":
+                        stdscr.addstr("♦", curses.color_pair(197))
+                    elif char == "/":
+                        stdscr.addstr("/", curses.color_pair(240))
+                    else:
+                        stdscr.addstr(char)
                 c = stdscr.getch()
                 if c == ord('d'):
                     game.drawNewWaste()
@@ -63,9 +78,9 @@ def main(stdscr):
                 elif c == ord ('y'):
                     if game.newGameState:
                         game = Game(mainChoice == ord('2'))
-        elif mainChoice == ord('3'):
+        elif mainChoice == ord('3') or mainChoice == ord('q'):
             break
 
 # Init.
 if __name__ == "__main__":
-    wrapper(main)
+    curses.wrapper(main)
