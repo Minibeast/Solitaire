@@ -300,7 +300,6 @@ class Game:
             self.verticalmovementpos += 1
             if self.tableau[self.cursorpos - 1][(self.verticalmovementpos * -1) - 1].hidden:
                 return False
-            self.debugText = self.tableau[self.cursorpos - 1][(self.verticalmovementpos * -1) - 1].value.name
             return True
         else:
             return False
@@ -394,6 +393,7 @@ class Game:
                     self.grabbedCards = []
                     self.grabbedCardPos = None
                     self.moves += 1
+                    self.checkWin()
                     return
         self.putBackCard()
 
