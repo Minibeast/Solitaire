@@ -382,6 +382,7 @@ class Game:
                 self.grabbedCards = []
                 self.grabbedCardPos = None
                 self.moves += 1
+        self.checkWin()
 
     def autoMoveToFoundation(self):
         if len(self.grabbedCards) == 0:
